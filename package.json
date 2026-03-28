@@ -1,0 +1,7 @@
+{
+  "name": "asbestos-court-dashboard",
+  "private": true,
+  "dependencies": {
+    "@vercel/functions": "^2.2.0"
+  }
+}
