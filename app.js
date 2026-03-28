@@ -614,7 +614,7 @@ function render() {
   const stateCounts = countBy(filtered, (item) => item.state);
   const exposureCounts = tallyTerms(filtered.flatMap((item) => item.exposures));
   const materialCounts = tallyTerms(filtered.flatMap((item) => item.materials));
-  const occupationCounts = tallyTerms(filtered.flatMap((item) => item.occupations));
+  const occupationCounts = buildOccupationCounts(filtered);
   const losses = filtered.filter((item) => item.outcome === "plaintiff_lost");
   const classActions = filtered.filter((item) => item.classAction);
 
@@ -740,7 +740,7 @@ function renderInsights(filtered, stateCounts, exposureCounts, materialCounts, o
     {
       title: "Occupation trend",
       body: topOccupation
-        ? `${topOccupation.label} appears most often among the visible occupations, which is a useful anchor for workforce trend analysis.`
+        ? `${topOccupation.label} appears most often among explicitly named occupations in the visible cases.`
         : "No occupational trend is visible under the current filters."
     },
     {
@@ -800,6 +800,20 @@ function renderOccupationBars(tally) {
       `
     )
     .join("");
+}
+
+function buildOccupationCounts(items) {
+  const tally = {};
+  for (const item of items) {
+    if (Array.isArray(item.occupations) && item.occupations.length) {
+      for (const occupation of item.occupations) {
+        tally[occupation] = (tally[occupation] || 0) + 1;
+      }
+    } else if (item.exposures.includes("occupational exposure")) {
+      tally["occupation not specified"] = (tally["occupation not specified"] || 0) + 1;
+    }
+  }
+  return tally;
 }
 
 function renderCaseStack(container, items, emptyMessage) {
