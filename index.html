@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Asbestos Litigation Atlas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Serif+4:opsz,wght@8..60,400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">CourtListener-powered asbestos intelligence</p>
+          <h1>Asbestos Litigation Atlas</h1>
+          <p class="hero-text">
+            A nationwide dashboard for asbestos-related litigation across U.S.
+            courts, designed to surface exposures, materials, occupations,
+            geography, class actions, and loss patterns in one view.
+          </p>
+          <div class="hero-actions">
+            <button id="load-sample-btn" class="btn btn-primary">Load showcase dataset</button>
+            <button id="fetch-live-btn" class="btn btn-secondary">Fetch live CourtListener data</button>
+          </div>
+        </div>
+        <aside class="setup-card">
+          <h2>Live API setup</h2>
+          <ol class="setup-steps">
+            <li>Create a free CourtListener account.</li>
+            <li>Deploy this project on Vercel and set <code>COURTLISTENER_API_TOKEN</code>.</li>
+            <li>Use the token box below only as an optional local override.</li>
+          </ol>
+          <label class="field-label" for="api-token">Optional token override</label>
+          <input id="api-token" type="password" placeholder="Optional: paste token here" />
+          <label class="field-label" for="custom-query">Optional extra query</label>
+          <input
+            id="custom-query"
+            type="text"
+            placeholder='Example: "vermiculite" OR "talc"'
+          />
+          <p class="field-hint">
+            The backend already searches asbestos, mesothelioma, asbestosis,
+            chrysotile, amosite, crocidolite, tremolite, actinolite,
+            anthophyllite, and related litigation-intent phrases.
+          </p>
+          <div class="setup-actions">
+            <button id="save-token-btn" class="btn btn-ghost">Save token</button>
+            <button id="clear-token-btn" class="btn btn-ghost">Clear token</button>
+          </div>
+        </aside>
+      </header>
+
+      <main>
+        <section class="status-bar">
+          <div>
+            <span class="status-label">Mode</span>
+            <strong id="data-mode">Showcase dataset</strong>
+          </div>
+          <div>
+            <span class="status-label">Records</span>
+            <strong id="record-count">0</strong>
+          </div>
+          <div>
+            <span class="status-label">Last refresh</span>
+            <strong id="last-refresh">Not loaded</strong>
+          </div>
+          <div class="status-message" id="status-message">
+            Ready to explore the showcase dataset.
+          </div>
+        </section>
+
+        <section class="controls-panel">
+          <div class="control-block control-block-wide">
+            <label class="field-label" for="search-input">Search cases</label>
+            <input
+              id="search-input"
+              type="search"
+              placeholder="Search case names, materials, occupations, exposures, courts"
+            />
+          </div>
+          <div class="control-block">
+            <label class="field-label" for="outcome-filter">Outcome</label>
+            <select id="outcome-filter">
+              <option value="all">All outcomes</option>
+              <option value="plaintiff_won">Plaintiff won</option>
+              <option value="plaintiff_lost">Plaintiff lost</option>
+              <option value="mixed">Mixed</option>
+              <option value="settled">Settled</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+          <div class="control-block">
+            <label class="field-label" for="class-action-filter">Class actions</label>
+            <select id="class-action-filter">
+              <option value="all">All cases</option>
+              <option value="class_only">Class actions only</option>
+              <option value="individual_only">Individual cases only</option>
+            </select>
+          </div>
+          <div class="control-block">
+            <label class="field-label" for="state-filter">Venue geography</label>
+            <select id="state-filter">
+              <option value="all">All states</option>
+            </select>
+          </div>
+        </section>
+
+        <section class="court-toggle-panel">
+          <div class="section-heading">
+            <p class="eyebrow">Court-wise toggles</p>
+            <h2>Turn court systems on or off</h2>
+          </div>
+          <div id="court-toggles" class="toggle-row"></div>
+        </section>
+
+        <section class="metrics-grid" id="metrics-grid"></section>
+
+        <section class="insight-layout">
+          <article class="panel panel-map">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Nationwide geography</p>
+                <h2>Interactive U.S. venue map</h2>
+              </div>
+              <p class="panel-note">
+                Click any state tile to filter the dashboard. Counts reflect
+                venue geography inferred from the case court.
+              </p>
+            </div>
+            <div id="map-legend" class="legend"></div>
+            <div id="us-map" class="us-map"></div>
+          </article>
+
+          <article class="panel panel-insights">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">AI-style synthesis</p>
+                <h2>What stands out</h2>
+              </div>
+            </div>
+            <div id="insight-list" class="insight-list"></div>
+          </article>
+        </section>
+
+        <section class="triple-grid">
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Exposure scenarios</p>
+                <h2>Common asbestos exposures in litigation</h2>
+              </div>
+            </div>
+            <div id="exposure-list" class="tag-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Materials</p>
+                <h2>Products and materials tied to exposure</h2>
+              </div>
+            </div>
+            <div id="material-list" class="tag-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Occupations</p>
+                <h2>Occupational patterns</h2>
+              </div>
+            </div>
+            <div id="occupation-trends" class="bar-list"></div>
+          </article>
+        </section>
+
+        <section class="double-grid">
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Losses</p>
+                <h2>Cases where plaintiffs lost</h2>
+              </div>
+            </div>
+            <div id="lost-cases" class="case-stack"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Class actions</p>
+                <h2>Separate section for class and mass actions</h2>
+              </div>
+            </div>
+            <div id="class-actions" class="case-stack"></div>
+          </article>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Case explorer</p>
+              <h2>Browse the loaded asbestos litigation records</h2>
+            </div>
+          </div>
+          <div id="case-results" class="case-results"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Deployment checklist</p>
+              <h2>Push this site fast</h2>
+            </div>
+          </div>
+          <div class="deploy-grid">
+            <div>
+              <h3>GitHub Pages</h3>
+              <p>
+                Useful only for the static showcase view. GitHub Pages cannot
+                run the secure backend search endpoint.
+              </p>
+            </div>
+            <div>
+              <h3>Vercel</h3>
+              <p>
+                Import the repository, add
+                <code>COURTLISTENER_API_TOKEN</code>, and deploy for the full
+                backend-powered live search experience.
+              </p>
+            </div>
+            <div>
+              <h3>Local preview</h3>
+              <p>
+                Run a static server in the folder and open the local URL in your
+                browser.
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+  </html>
