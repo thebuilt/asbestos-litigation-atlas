@@ -13,6 +13,21 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <div class="login-overlay" id="login-overlay">
+      <div class="login-card">
+        <p class="eyebrow">Restricted Access</p>
+        <h1 class="login-title">Asbestos Litigation Atlas</h1>
+        <p class="login-copy">
+          Enter the site credentials to continue.
+        </p>
+        <label class="field-label" for="login-username">Username</label>
+        <input id="login-username" type="text" autocomplete="username" />
+        <label class="field-label" for="login-password">Password</label>
+        <input id="login-password" type="password" autocomplete="current-password" />
+        <button id="login-submit-btn" class="btn btn-secondary login-btn">Enter dashboard</button>
+        <p class="login-error" id="login-error" hidden>Invalid username or password.</p>
+      </div>
+    </div>
     <div class="page-shell">
       <header class="hero">
         <div class="hero-copy">
@@ -24,7 +39,6 @@
             geography, class actions, and loss patterns in one view.
           </p>
           <div class="hero-actions">
-            <button id="load-sample-btn" class="btn btn-primary">Load showcase dataset</button>
             <button id="fetch-live-btn" class="btn btn-secondary">Fetch live CourtListener data</button>
           </div>
         </div>
@@ -56,6 +70,24 @@
       </header>
 
       <main>
+        <section class="panel disclaimer-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Disclaimer</p>
+              <h2>Educational And Research Use Only</h2>
+            </div>
+          </div>
+          <p class="disclaimer-copy">
+            This dashboard is provided solely for educational, informational, and research purposes. It is an exploratory interface over third-party court data and automated text categorization. It is not legal advice, not a substitute for professional counsel, not a litigation decision tool, and not a certified or exhaustive statement of U.S. asbestos-related case activity.
+          </p>
+          <p class="disclaimer-copy">
+            Case labels, outcomes, occupations, exposure types, material categories, and geographic inferences may be incomplete, overinclusive, underinclusive, or incorrect because they rely on search retrieval, snippet availability, and automated normalization rules rather than manual case-by-case legal review.
+          </p>
+          <p class="disclaimer-copy">
+            Users should independently verify all case details, holdings, procedural posture, jurisdiction, and factual assertions from the primary source documents before relying on any result. Use of this dashboard constitutes acceptance that the operator makes no warranty regarding completeness, accuracy, fitness for legal use, or suitability for business, compliance, medical, insurance, or litigation strategy decisions.
+          </p>
+        </section>
+
         <section class="status-bar">
           <div>
             <span class="status-label">Mode</span>
