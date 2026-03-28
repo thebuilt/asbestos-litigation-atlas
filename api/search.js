@@ -57,6 +57,17 @@ const occupationRules = [
   { label: "teacher", patterns: [/\bteacher\b/i] }
 ];
 
+const industryRules = [
+  { label: "construction and building products", patterns: [/construction/i, /drywall/i, /joint compound/i, /roofing/i, /siding/i, /floor tiles?/i] },
+  { label: "maritime and shipbuilding", patterns: [/shipyard/i, /shipboard/i, /navy/i, /maritime/i, /engine room/i] },
+  { label: "automotive and friction products", patterns: [/brake/i, /friction/i, /automotive/i, /garage/i, /clutch/i] },
+  { label: "mining and minerals", patterns: [/mining/i, /miner/i, /vermiculite/i, /talc/i, /milling/i] },
+  { label: "oil, gas, and refining", patterns: [/refinery/i, /chemical plant/i, /turnaround/i, /boiler/i] },
+  { label: "consumer products", patterns: [/consumer/i, /cosmetic/i, /talc/i, /household product/i] },
+  { label: "industrial manufacturing", patterns: [/manufacturing/i, /industrial/i, /plant/i, /processing facility/i] },
+  { label: "schools and public buildings", patterns: [/school/i, /teacher/i, /custodian/i, /public housing/i] }
+];
+
 module.exports = async (req, res) => {
   setCors(res);
 
@@ -249,6 +260,13 @@ function normalizeCourtListenerResult(item, type, index) {
     exposures: detectLabels(textBlob, exposureTypeRules),
     materials: detectLabels(textBlob, materialCategoryRules),
     occupations: detectLabels(textBlob, occupationRules),
+    industries: detectLabels(textBlob, industryRules),
+    companies: extractCompanyNames([item.caseName, item.caseNameFull, summary].filter(Boolean).join(" ")),
+    defendantCompanies: extractCompanyNames([item.caseName, item.caseNameFull, summary].filter(Boolean).join(" "))
+      .filter((name) => !isTrustOrFund(name)),
+    trustFunds: extractCompanyNames([item.caseName, item.caseNameFull, summary].filter(Boolean).join(" "))
+      .filter((name) => isTrustOrFund(name)),
+    snapshot: buildCaseSnapshot(textBlob),
     summary,
     absolute_url: item.absolute_url
       ? `https://www.courtlistener.com${item.absolute_url}`
@@ -320,6 +338,33 @@ function detectLabels(text, rules) {
   return rules
     .filter((rule) => rule.patterns.some((pattern) => pattern.test(text)))
     .map((rule) => rule.label);
+}
+
+function extractCompanyNames(text) {
+  const matches = text.match(/\b([A-Z][A-Za-z&.,'/-]*(?:\s+[A-Z][A-Za-z&.,'/-]*){0,5}\s(?:Inc\.|Corp\.|Corporation|LLC|Ltd\.|Co\.|Company|Trust|Fund|PLC|LP|L\.P\.))\b/g) || [];
+  return [...new Set(matches.map((value) => value.trim()))];
+}
+
+function isTrustOrFund(name) {
+  return /\b(Trust|Fund)\b/i.test(name);
+}
+
+function buildCaseSnapshot(text) {
+  const fragments = [];
+  if (/mesothelioma/i.test(text)) fragments.push("mesothelioma claim");
+  else if (/asbestosis/i.test(text)) fragments.push("asbestosis-related claim");
+  else fragments.push("asbestos exposure claim");
+
+  if (/wrongful death/i.test(text)) fragments.push("wrongful-death allegations");
+  else if (/personal injury/i.test(text)) fragments.push("personal-injury allegations");
+
+  if (/class action|rule 23|mdl|multidistrict/i.test(text)) fragments.push("class or mass-action context");
+  if (/brake|friction/i.test(text)) fragments.push("friction-product exposure");
+  if (/shipyard|navy|shipboard/i.test(text)) fragments.push("maritime or naval exposure");
+  if (/talc/i.test(text)) fragments.push("talc-related allegations");
+  if (/vermiculite/i.test(text)) fragments.push("vermiculite-related allegations");
+
+  return fragments.length ? fragments.join(" · ") : "asbestos litigation matter";
 }
 
 function dedupeCases(items) {

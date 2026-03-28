@@ -370,6 +370,9 @@ const els = {
   exposureList: document.getElementById("exposure-list"),
   materialList: document.getElementById("material-list"),
   occupationTrends: document.getElementById("occupation-trends"),
+  defendantList: document.getElementById("defendant-list"),
+  trustList: document.getElementById("trust-list"),
+  industryList: document.getElementById("industry-list"),
   lostCases: document.getElementById("lost-cases"),
   classActions: document.getElementById("class-actions"),
   caseResults: document.getElementById("case-results"),
@@ -607,6 +610,9 @@ function render() {
   const exposureCounts = tallyTerms(filtered.flatMap((item) => item.exposures));
   const materialCounts = tallyTerms(filtered.flatMap((item) => item.materials));
   const occupationCounts = buildOccupationCounts(filtered);
+  const defendantCounts = tallyTerms(filtered.flatMap((item) => item.defendantCompanies || []));
+  const trustCounts = tallyTerms(filtered.flatMap((item) => item.trustFunds || []));
+  const industryCounts = tallyTerms(filtered.flatMap((item) => item.industries || []));
   const losses = filtered.filter((item) => item.outcome === "plaintiff_lost");
   const classActions = filtered.filter((item) => item.classAction);
 
@@ -616,10 +622,13 @@ function render() {
 
   populateStateFilter(allCases);
   renderMetrics(filtered, allCases);
-  renderInsights(filtered, stateCounts, exposureCounts, materialCounts, occupationCounts);
+  renderInsights(filtered, stateCounts, exposureCounts, materialCounts, occupationCounts, defendantCounts, trustCounts, industryCounts);
   renderTagList(els.exposureList, exposureCounts);
   renderTagList(els.materialList, materialCounts);
   renderOccupationBars(occupationCounts);
+  renderTagList(els.defendantList, defendantCounts);
+  renderTagList(els.trustList, trustCounts);
+  renderTagList(els.industryList, industryCounts);
   renderCaseStack(els.lostCases, losses, "No plaintiff-loss cases match the current filters.");
   renderCaseStack(els.classActions, classActions, "No class actions match the current filters.");
   renderCaseResults(filtered);
@@ -704,11 +713,14 @@ function renderMetrics(filtered, allCases) {
     .join("");
 }
 
-function renderInsights(filtered, stateCounts, exposureCounts, materialCounts, occupationCounts) {
+function renderInsights(filtered, stateCounts, exposureCounts, materialCounts, occupationCounts, defendantCounts, trustCounts, industryCounts) {
   const topState = topEntries(stateCounts, 1)[0];
   const topExposure = topEntries(exposureCounts, 1)[0];
   const topMaterial = topEntries(materialCounts, 1)[0];
-  const topOccupation = topEntries(occupationCounts, 1)[0];
+  const topOccupation = topEntries(filterOutKeys(occupationCounts, ["occupation not specified"]), 1)[0];
+  const topDefendant = topEntries(defendantCounts, 1)[0];
+  const topTrust = topEntries(trustCounts, 1)[0];
+  const topIndustry = topEntries(industryCounts, 1)[0];
 
   const insights = [
     {
@@ -733,7 +745,25 @@ function renderInsights(filtered, stateCounts, exposureCounts, materialCounts, o
       title: "Occupation trend",
       body: topOccupation
         ? `${topOccupation.label} appears most often among explicitly named occupations in the visible cases.`
-        : "No occupational trend is visible under the current filters."
+        : "Visible cases often indicate occupational exposure without naming a specific job title."
+    },
+    {
+      title: "Defendant recurrence",
+      body: topDefendant
+        ? `${topDefendant.label} appears most often among the defendant and manufacturer names detected in the visible cases.`
+        : "No recurring defendant or manufacturer signal is visible under the current filters."
+    },
+    {
+      title: "Trust recurrence",
+      body: topTrust
+        ? `${topTrust.label} appears most often among the trusts and compensation funds detected in the visible cases.`
+        : "No recurring trust or fund signal is visible under the current filters."
+    },
+    {
+      title: "Industry pattern",
+      body: topIndustry
+        ? `${topIndustry.label} is the strongest industry cluster in the current slice.`
+        : "No industry pattern is visible under the current filters."
     },
     {
       title: "Court mix",
@@ -808,6 +838,12 @@ function buildOccupationCounts(items) {
   return tally;
 }
 
+function filterOutKeys(tally, excludedKeys) {
+  return Object.fromEntries(
+    Object.entries(tally).filter(([key]) => !excludedKeys.includes(key))
+  );
+}
+
 function renderCaseStack(container, items, emptyMessage) {
   if (!items.length) {
     container.innerHTML = `<div class="empty-state">${emptyMessage}</div>`;
@@ -828,6 +864,7 @@ function renderCaseResults(items) {
 
 function renderCaseCard(item) {
   const excerpt = buildExcerpt(item.summary);
+  const snapshot = item.snapshot || "asbestos litigation matter";
   return `
     <article class="case-card">
       <div class="case-title-row">
@@ -837,6 +874,8 @@ function renderCaseCard(item) {
         </div>
         <span class="badge ${badgeClass(item.outcome)}">${outcomeLabels[item.outcome] || "Unknown"}</span>
       </div>
+      <div class="case-summary-label">Case snapshot</div>
+      <p class="case-summary">${snapshot}</p>
       <div class="case-summary-label">Matched excerpt</div>
       <p class="case-summary">${excerpt}</p>
       <div class="case-tags">
@@ -845,6 +884,8 @@ function renderCaseCard(item) {
         ${item.exposures.slice(0, 2).map((term) => `<span class="case-tag">${term}</span>`).join("")}
         ${item.materials.slice(0, 2).map((term) => `<span class="case-tag">${term}</span>`).join("")}
         ${item.occupations.slice(0, 2).map((term) => `<span class="case-tag">${term}</span>`).join("")}
+        ${(item.companies || []).slice(0, 2).map((term) => `<span class="case-tag">${term}</span>`).join("")}
+        ${(item.industries || []).slice(0, 2).map((term) => `<span class="case-tag">${term}</span>`).join("")}
       </div>
     </article>
   `;
