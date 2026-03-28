@@ -29,12 +29,11 @@
           </div>
         </div>
         <aside class="setup-card">
-          <h2>Live API setup</h2>
-          <ol class="setup-steps">
-            <li>Create a free CourtListener account.</li>
-            <li>Deploy this project on Vercel and set <code>COURTLISTENER_API_TOKEN</code>.</li>
-            <li>Fetch live data. The token is now expected to live server-side in Vercel.</li>
-          </ol>
+          <h2>Live Search Controls</h2>
+          <p class="field-hint">
+            Live search is already connected through the backend. Use the extra
+            query box to narrow the nationwide asbestos case search.
+          </p>
           <label class="field-label" for="custom-query">Optional extra query</label>
           <input
             id="custom-query"
@@ -44,7 +43,14 @@
           <p class="field-hint">
             The backend already searches asbestos, mesothelioma, asbestosis,
             chrysotile, amosite, crocidolite, tremolite, actinolite,
-            anthophyllite, and related litigation-intent phrases.
+            anthophyllite, plus litigation-intent phrases like wrongful death,
+            personal injury, exposure, product, premises, and failure to warn.
+          </p>
+          <p class="field-hint">
+            Useful examples:
+            <code>shipyard OR navy OR boiler</code>,
+            <code>"wrongful death" OR mesothelioma</code>,
+            <code>talc OR vermiculite OR brake</code>
           </p>
         </aside>
       </header>
@@ -151,7 +157,7 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Exposure scenarios</p>
-                <h2>Common asbestos exposures in litigation</h2>
+                <h2>Normalized exposure types</h2>
               </div>
             </div>
             <div id="exposure-list" class="tag-list"></div>
@@ -161,7 +167,7 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Materials</p>
-                <h2>Products and materials tied to exposure</h2>
+                <h2>Material and product categories</h2>
               </div>
             </div>
             <div id="material-list" class="tag-list"></div>
@@ -171,7 +177,7 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Occupations</p>
-                <h2>Occupational patterns</h2>
+                <h2>Normalized occupation patterns</h2>
               </div>
             </div>
             <div id="occupation-trends" class="bar-list"></div>

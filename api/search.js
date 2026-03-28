@@ -10,118 +10,51 @@ const mesotheliomaQuery =
 const intentQuery =
   '((asbestos OR mesothelioma OR asbestosis) AND (exposure OR occupational OR workplace OR product OR premises OR "failure to warn" OR "wrongful death" OR "personal injury" OR "take-home" OR talc OR vermiculite OR brake OR insulation))';
 
-const exposureDictionary = [
-  "mesothelioma",
-  "pleural mesothelioma",
-  "peritoneal mesothelioma",
-  "malignant mesothelioma",
-  "asbestosis",
-  "pleural plaques",
-  "lung cancer",
-  "occupational insulation handling",
-  "shipyard and industrial insulation work",
-  "mixed occupational exposure",
-  "future-claimant exposure",
-  "construction and maintenance exposure",
-  "take-home exposure",
-  "household laundering",
-  "secondary household exposure",
-  "school renovation disturbance",
-  "community contamination",
-  "processing facility exposure",
-  "automotive brake work",
-  "garage dust exposure",
-  "refinery maintenance shutdown",
-  "confined-space insulation removal",
-  "engine room maintenance",
-  "shipboard boiler overhaul",
-  "tenant renovation exposure",
-  "dust during remediation failures",
-  "consumer talc use",
-  "brake",
-  "shipyard",
-  "construction",
-  "renovation",
-  "maintenance",
-  "refinery",
-  "talc",
-  "vermiculite",
-  "laundering",
-  "boiler",
-  "engine room",
-  "premises liability",
-  "failure to warn",
-  "wrongful death",
-  "personal injury",
-  "household exposure",
-  "secondary exposure"
+const exposureTypeRules = [
+  { label: "occupational exposure", patterns: [/occupational/i, /workplace/i, /on the job/i, /personal injury/i] },
+  { label: "take-home / secondary exposure", patterns: [/take-home/i, /secondary exposure/i, /household/i, /laundering/i, /spouse/i, /family member/i] },
+  { label: "consumer exposure", patterns: [/consumer/i, /talc/i, /cosmetic/i, /household product/i] },
+  { label: "environmental / community exposure", patterns: [/community/i, /environmental/i, /vermiculite/i, /processing facility/i, /contamination/i] },
+  { label: "maritime / naval exposure", patterns: [/shipyard/i, /navy/i, /engine room/i, /boiler room/i, /shipboard/i] },
+  { label: "construction / renovation exposure", patterns: [/construction/i, /renovation/i, /demolition/i, /abatement/i, /school/i] },
+  { label: "automotive friction exposure", patterns: [/brake/i, /friction/i, /garage/i, /mechanic/i] },
+  { label: "industrial maintenance exposure", patterns: [/refinery/i, /maintenance/i, /chemical plant/i, /boiler/i, /turnaround/i] },
+  { label: "mining / milling exposure", patterns: [/miner/i, /mining/i, /milling/i] }
 ];
 
-const materialDictionary = [
-  "asbestos fibers",
-  "asbestos dust",
-  "friable asbestos",
-  "thermal insulation",
-  "pipe covering",
-  "block insulation",
-  "insulation",
-  "gaskets",
-  "packing",
-  "boiler insulation",
-  "joint compound",
-  "floor tiles",
-  "ceiling panels",
-  "sprayed fireproofing",
-  "pipe insulation",
-  "drywall products",
-  "talc",
-  "vermiculite",
-  "brake linings",
-  "friction products",
-  "brake shoes",
-  "cement siding",
-  "roofing shingles",
-  "refractory products",
-  "valve packing",
-  "turbine insulation"
+const materialCategoryRules = [
+  { label: "thermal insulation", patterns: [/thermal insulation/i, /block insulation/i, /\binsulation\b/i] },
+  { label: "pipe insulation / covering", patterns: [/pipe insulation/i, /pipe covering/i] },
+  { label: "boiler and turbine insulation", patterns: [/boiler insulation/i, /turbine insulation/i, /boiler room/i] },
+  { label: "gaskets and packing", patterns: [/\bgaskets?\b/i, /\bpacking\b/i, /valve packing/i] },
+  { label: "joint compound and drywall", patterns: [/joint compound/i, /drywall/i] },
+  { label: "flooring and ceiling materials", patterns: [/floor tiles?/i, /ceiling panels?/i, /ceiling tiles?/i] },
+  { label: "sprayed fireproofing", patterns: [/sprayed fireproofing/i, /fireproofing/i] },
+  { label: "friction products", patterns: [/brake linings/i, /brake shoes/i, /friction products?/i, /\bbrake\b/i, /\bclutch\b/i] },
+  { label: "talc products", patterns: [/\btalc\b/i] },
+  { label: "vermiculite products", patterns: [/\bvermiculite\b/i] },
+  { label: "refractory and cement products", patterns: [/refractory/i, /cement siding/i, /cement pipe/i] },
+  { label: "roofing and siding products", patterns: [/roofing shingles/i, /siding/i] }
 ];
 
-const occupationDictionary = [
-  "insulator",
-  "industrial worker",
-  "construction worker",
-  "pipefitter",
-  "electrician",
-  "maintenance worker",
-  "family member",
-  "drywall finisher",
-  "shipyard worker",
-  "machinist",
-  "Navy veteran",
-  "auto mechanic",
-  "garage worker",
-  "processing plant worker",
-  "community resident",
-  "boilermaker",
-  "refinery worker",
-  "spouse",
-  "consumer",
-  "abatement worker",
-  "custodian",
-  "teacher",
-  "maintenance mechanic",
-  "roofer",
-  "carpenter",
-  "machinist mate",
-  "rail mechanic",
-  "tenant",
-  "welder",
-  "plumber",
-  "laborer",
-  "miner",
-  "millwright",
-  "steamfitter",
-  "electrician apprentice"
+const occupationRules = [
+  { label: "insulator", patterns: [/\binsulator\b/i] },
+  { label: "pipefitter / steamfitter", patterns: [/\bpipefitter\b/i, /\bsteamfitter\b/i] },
+  { label: "boilermaker", patterns: [/\bboilermaker\b/i] },
+  { label: "electrician", patterns: [/\belectrician\b/i, /electrician apprentice/i] },
+  { label: "mechanic / machinist", patterns: [/\bmechanic\b/i, /\bmachinist\b/i, /machinist mate/i, /auto mechanic/i, /rail mechanic/i] },
+  { label: "miner", patterns: [/\bminer\b/i, /\bmining\b/i] },
+  { label: "millwright", patterns: [/\bmillwright\b/i] },
+  { label: "laborer", patterns: [/\blaborer\b/i] },
+  { label: "welder", patterns: [/\bwelder\b/i] },
+  { label: "plumber", patterns: [/\bplumber\b/i] },
+  { label: "carpenter / roofer", patterns: [/\bcarpenter\b/i, /\broofer\b/i] },
+  { label: "construction worker", patterns: [/construction worker/i] },
+  { label: "shipyard worker", patterns: [/shipyard worker/i] },
+  { label: "refinery worker", patterns: [/refinery worker/i] },
+  { label: "abatement worker", patterns: [/abatement worker/i] },
+  { label: "custodian / maintenance", patterns: [/\bcustodian\b/i, /maintenance worker/i, /maintenance mechanic/i] },
+  { label: "teacher", patterns: [/\bteacher\b/i] }
 ];
 
 module.exports = async (req, res) => {
@@ -313,9 +246,9 @@ function normalizeCourtListenerResult(item, type, index) {
     dateFiled: item.dateFiled || "Unknown",
     outcome: inferOutcome(textBlob),
     classAction: /class action|rule 23|certif|mdl|multidistrict/i.test(textBlob),
-    exposures: detectTerms(textBlob, exposureDictionary),
-    materials: detectTerms(textBlob, materialDictionary),
-    occupations: detectTerms(textBlob, occupationDictionary),
+    exposures: detectLabels(textBlob, exposureTypeRules),
+    materials: detectLabels(textBlob, materialCategoryRules),
+    occupations: detectLabels(textBlob, occupationRules),
     summary,
     absolute_url: item.absolute_url
       ? `https://www.courtlistener.com${item.absolute_url}`
@@ -383,9 +316,10 @@ function guessStateFromCourt(courtName, courtId) {
   return "Unknown";
 }
 
-function detectTerms(text, dictionary) {
-  const lower = text.toLowerCase();
-  return dictionary.filter((term) => lower.includes(term.toLowerCase()));
+function detectLabels(text, rules) {
+  return rules
+    .filter((rule) => rule.patterns.some((pattern) => pattern.test(text)))
+    .map((rule) => rule.label);
 }
 
 function dedupeCases(items) {
