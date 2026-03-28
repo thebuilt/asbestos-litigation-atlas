@@ -387,9 +387,13 @@ const els = {
   fetchLiveBtn: document.getElementById("fetch-live-btn")
 };
 
+const LIVE_CACHE_KEY = "asbestos-litigation-atlas-live-cache";
+const LIVE_CACHE_META_KEY = "asbestos-litigation-atlas-live-cache-meta";
+
 init();
 
 function init() {
+  hydrateCachedDataset();
   renderCourtToggles();
   bindEvents();
   render();
@@ -427,6 +431,10 @@ function bindEvents() {
       const liveCases = Array.isArray(payload.cases) ? payload.cases : [];
       appState.mode = "live";
       appState.rawCases = liveCases.length ? liveCases : [...showcaseCases];
+      saveCachedDataset(liveCases, {
+        syncedAt: new Date().toISOString(),
+        extraQuery: els.customQuery.value.trim()
+      });
       setStatus(
         liveCases.length
           ? `Loaded ${liveCases.length} live records from the backend CourtListener search service.`
@@ -444,6 +452,36 @@ function bindEvents() {
       setLoadingState(false);
     }
   });
+}
+
+function hydrateCachedDataset() {
+  try {
+    const cachedCases = JSON.parse(localStorage.getItem(LIVE_CACHE_KEY) || "null");
+    const cachedMeta = JSON.parse(localStorage.getItem(LIVE_CACHE_META_KEY) || "null");
+
+    if (Array.isArray(cachedCases) && cachedCases.length) {
+      appState.mode = "live";
+      appState.rawCases = cachedCases;
+      if (cachedMeta?.extraQuery) {
+        els.customQuery.value = cachedMeta.extraQuery;
+      }
+      const syncedAtText = cachedMeta?.syncedAt
+        ? new Date(cachedMeta.syncedAt).toLocaleString()
+        : "a previous session";
+      setStatus(`Loaded cached dataset from ${syncedAtText}. Use refresh only when you want to check for new cases.`, false);
+    }
+  } catch (error) {
+    console.error("Failed to load cached dataset", error);
+  }
+}
+
+function saveCachedDataset(cases, meta) {
+  try {
+    localStorage.setItem(LIVE_CACHE_KEY, JSON.stringify(cases));
+    localStorage.setItem(LIVE_CACHE_META_KEY, JSON.stringify(meta));
+  } catch (error) {
+    console.error("Failed to save cached dataset", error);
+  }
 }
 
 async function fetchCourtListenerCases(extraQuery, onProgress = () => {}) {
@@ -566,7 +604,7 @@ function setLoadingState(isLoading, message) {
     setStatus(message, false);
   }
   els.fetchLiveBtn.disabled = isLoading;
-  els.fetchLiveBtn.textContent = isLoading ? "Fetching..." : "Fetch live CourtListener data";
+  els.fetchLiveBtn.textContent = isLoading ? "Refreshing..." : "Refresh live CourtListener data";
   els.statusProgress.hidden = !isLoading;
 }
 
@@ -616,9 +654,9 @@ function render() {
   const losses = filtered.filter((item) => item.outcome === "plaintiff_lost");
   const classActions = filtered.filter((item) => item.classAction);
 
-  els.dataMode.textContent = appState.mode === "live" ? "Live CourtListener results" : "Showcase dataset";
+  els.dataMode.textContent = appState.mode === "live" ? "Cached / live CourtListener results" : "Showcase dataset";
   els.recordCount.textContent = String(filtered.length);
-  els.lastRefresh.textContent = new Date().toLocaleString();
+  els.lastRefresh.textContent = resolveLastRefreshText();
 
   populateStateFilter(allCases);
   renderMetrics(filtered, allCases);
@@ -663,6 +701,23 @@ function buildSearchHaystack(item) {
   ]
     .join(" ")
     .toLowerCase();
+}
+
+function resolveLastRefreshText() {
+  if (appState.mode !== "live") {
+    return new Date().toLocaleString();
+  }
+
+  try {
+    const cachedMeta = JSON.parse(localStorage.getItem(LIVE_CACHE_META_KEY) || "null");
+    if (cachedMeta?.syncedAt) {
+      return new Date(cachedMeta.syncedAt).toLocaleString();
+    }
+  } catch (error) {
+    console.error("Failed to read cache metadata", error);
+  }
+
+  return new Date().toLocaleString();
 }
 
 function renderMetrics(filtered, allCases) {
