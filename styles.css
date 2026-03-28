@@ -39,7 +39,6 @@ body {
 .insight-layout,
 .triple-grid,
 .double-grid,
-.deploy-grid,
 .controls-panel,
 .status-bar,
 .metrics-grid {
@@ -127,9 +126,9 @@ h3 {
 .hero-text,
 .panel-note,
 .field-hint,
-.deploy-grid p,
 .setup-steps,
 .case-meta,
+.case-summary,
 .insight-item p {
   color: var(--muted);
   line-height: 1.55;
@@ -142,7 +141,6 @@ h3 {
 }
 
 .hero-actions,
-.setup-actions,
 .toggle-row,
 .legend,
 .tag-list,
@@ -217,6 +215,36 @@ select {
   background: var(--accent-soft);
   color: var(--accent-deep);
   font-size: 0.92rem;
+}
+
+.status-message-wrap {
+  display: grid;
+  gap: 10px;
+}
+
+.status-progress {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(29, 26, 22, 0.08);
+}
+
+.status-progress-bar {
+  width: 32%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--gold), var(--accent));
+  animation: status-slide 1.2s linear infinite;
+}
+
+@keyframes status-slide {
+  from {
+    transform: translateX(-120%);
+  }
+
+  to {
+    transform: translateX(340%);
+  }
 }
 
 .controls-panel {
@@ -468,15 +496,25 @@ select {
   margin-top: 14px;
 }
 
+.case-summary-label {
+  margin-top: 14px;
+  margin-bottom: 6px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.case-summary {
+  margin: 0;
+}
+
 .case-tag {
   font-size: 0.76rem;
   border-radius: 999px;
   padding: 7px 10px;
   background: rgba(29, 26, 22, 0.05);
-}
-
-.deploy-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 code {
@@ -498,7 +536,6 @@ code {
   .insight-layout,
   .triple-grid,
   .double-grid,
-  .deploy-grid,
   .case-results,
   .metrics-grid,
   .controls-panel,

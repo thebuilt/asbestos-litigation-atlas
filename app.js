@@ -1,5 +1,3 @@
-const STORAGE_KEY = "asbestos-litigation-atlas-token";
-
 const showcaseCases = [
   {
     id: "s1",
@@ -366,6 +364,7 @@ const els = {
   recordCount: document.getElementById("record-count"),
   lastRefresh: document.getElementById("last-refresh"),
   statusMessage: document.getElementById("status-message"),
+  statusProgress: document.getElementById("status-progress"),
   metricsGrid: document.getElementById("metrics-grid"),
   insightList: document.getElementById("insight-list"),
   exposureList: document.getElementById("exposure-list"),
@@ -381,19 +380,14 @@ const els = {
   courtToggles: document.getElementById("court-toggles"),
   usMap: document.getElementById("us-map"),
   mapLegend: document.getElementById("map-legend"),
-  apiToken: document.getElementById("api-token"),
   customQuery: document.getElementById("custom-query"),
   loadSampleBtn: document.getElementById("load-sample-btn"),
-  fetchLiveBtn: document.getElementById("fetch-live-btn"),
-  saveTokenBtn: document.getElementById("save-token-btn"),
-  clearTokenBtn: document.getElementById("clear-token-btn")
+  fetchLiveBtn: document.getElementById("fetch-live-btn")
 };
 
 init();
 
 function init() {
-  const savedToken = localStorage.getItem(STORAGE_KEY) || "";
-  els.apiToken.value = savedToken;
   renderCourtToggles();
   bindEvents();
   render();
@@ -428,15 +422,10 @@ function bindEvents() {
   });
 
   els.fetchLiveBtn.addEventListener("click", async () => {
-    const token = els.apiToken.value.trim();
-    if (token) {
-      localStorage.setItem(STORAGE_KEY, token);
-    }
-    setStatus("Querying the backend asbestos search service...", false);
+    setLoadingState(true, "Querying the backend asbestos search service...");
 
     try {
       const payload = await fetchCourtListenerCases(
-        token,
         els.customQuery.value.trim(),
         (message) => setStatus(message, false)
       );
@@ -449,29 +438,20 @@ function bindEvents() {
           : "Live fetch returned no normalized records, so the showcase dataset remains available.",
         false
       );
+      setLoadingState(false);
       render();
     } catch (error) {
       console.error(error);
       setStatus(
-        "Backend fetch failed. Set COURTLISTENER_API_TOKEN in Vercel, or use the optional token field as an override. The showcase dataset is still available.",
+        "Backend fetch failed. Check the Vercel COURTLISTENER_API_TOKEN and try again. The showcase dataset is still available.",
         true
       );
+      setLoadingState(false);
     }
-  });
-
-  els.saveTokenBtn.addEventListener("click", () => {
-    localStorage.setItem(STORAGE_KEY, els.apiToken.value.trim());
-    setStatus("Token saved in this browser.", false);
-  });
-
-  els.clearTokenBtn.addEventListener("click", () => {
-    localStorage.removeItem(STORAGE_KEY);
-    els.apiToken.value = "";
-    setStatus("Saved token cleared from this browser.", false);
   });
 }
 
-async function fetchCourtListenerCases(token, extraQuery, onProgress = () => {}) {
+async function fetchCourtListenerCases(extraQuery, onProgress = () => {}) {
   onProgress("Sending request to /api/search...");
   const url = new URL("./api/search", window.location.href);
   if (extraQuery) {
@@ -481,9 +461,6 @@ async function fetchCourtListenerCases(token, extraQuery, onProgress = () => {})
   const headers = {
     Accept: "application/json"
   };
-  if (token) {
-    headers["x-courtlistener-token"] = token;
-  }
 
   const response = await fetch(url.toString(), {
     method: "GET",
@@ -587,6 +564,15 @@ function setStatus(message, isError) {
   els.statusMessage.textContent = message;
   els.statusMessage.style.background = isError ? "rgba(127, 37, 16, 0.14)" : "rgba(174, 58, 29, 0.12)";
   els.statusMessage.style.color = isError ? "#7f2510" : "#7f2510";
+}
+
+function setLoadingState(isLoading, message) {
+  if (message) {
+    setStatus(message, false);
+  }
+  els.fetchLiveBtn.disabled = isLoading;
+  els.fetchLiveBtn.textContent = isLoading ? "Fetching..." : "Fetch live CourtListener data";
+  els.statusProgress.hidden = !isLoading;
 }
 
 function populateStateFilter(items) {
@@ -835,6 +821,7 @@ function renderCaseResults(items) {
 }
 
 function renderCaseCard(item) {
+  const excerpt = buildExcerpt(item.summary);
   return `
     <article class="case-card">
       <div class="case-title-row">
@@ -844,7 +831,8 @@ function renderCaseCard(item) {
         </div>
         <span class="badge ${badgeClass(item.outcome)}">${outcomeLabels[item.outcome] || "Unknown"}</span>
       </div>
-      <p class="case-meta">${item.summary}</p>
+      <div class="case-summary-label">Matched excerpt</div>
+      <p class="case-summary">${excerpt}</p>
       <div class="case-tags">
         <span class="case-tag">${item.courtType}</span>
         ${item.classAction ? '<span class="case-tag">Class action signal</span>' : ""}
@@ -854,6 +842,13 @@ function renderCaseCard(item) {
       </div>
     </article>
   `;
+}
+
+function buildExcerpt(text) {
+  const cleaned = stripHtml(text || "");
+  if (!cleaned) return "No excerpt available for this result.";
+  if (cleaned.length <= 320) return cleaned;
+  return `${cleaned.slice(0, 317).trimEnd()}...`;
 }
 
 function badgeClass(outcome) {

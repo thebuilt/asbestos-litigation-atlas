@@ -33,10 +33,8 @@
           <ol class="setup-steps">
             <li>Create a free CourtListener account.</li>
             <li>Deploy this project on Vercel and set <code>COURTLISTENER_API_TOKEN</code>.</li>
-            <li>Use the token box below only as an optional local override.</li>
+            <li>Fetch live data. The token is now expected to live server-side in Vercel.</li>
           </ol>
-          <label class="field-label" for="api-token">Optional token override</label>
-          <input id="api-token" type="password" placeholder="Optional: paste token here" />
           <label class="field-label" for="custom-query">Optional extra query</label>
           <input
             id="custom-query"
@@ -48,10 +46,6 @@
             chrysotile, amosite, crocidolite, tremolite, actinolite,
             anthophyllite, and related litigation-intent phrases.
           </p>
-          <div class="setup-actions">
-            <button id="save-token-btn" class="btn btn-ghost">Save token</button>
-            <button id="clear-token-btn" class="btn btn-ghost">Clear token</button>
-          </div>
         </aside>
       </header>
 
@@ -69,8 +63,13 @@
             <span class="status-label">Last refresh</span>
             <strong id="last-refresh">Not loaded</strong>
           </div>
-          <div class="status-message" id="status-message">
-            Ready to explore the showcase dataset.
+          <div class="status-message-wrap">
+            <div class="status-message" id="status-message">
+              Ready to explore the showcase dataset.
+            </div>
+            <div class="status-progress" id="status-progress" hidden>
+              <div class="status-progress-bar" id="status-progress-bar"></div>
+            </div>
           </div>
         </section>
 
@@ -209,39 +208,6 @@
             </div>
           </div>
           <div id="case-results" class="case-results"></div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Deployment checklist</p>
-              <h2>Push this site fast</h2>
-            </div>
-          </div>
-          <div class="deploy-grid">
-            <div>
-              <h3>GitHub Pages</h3>
-              <p>
-                Useful only for the static showcase view. GitHub Pages cannot
-                run the secure backend search endpoint.
-              </p>
-            </div>
-            <div>
-              <h3>Vercel</h3>
-              <p>
-                Import the repository, add
-                <code>COURTLISTENER_API_TOKEN</code>, and deploy for the full
-                backend-powered live search experience.
-              </p>
-            </div>
-            <div>
-              <h3>Local preview</h3>
-              <p>
-                Run a static server in the folder and open the local URL in your
-                browser.
-              </p>
-            </div>
-          </div>
         </section>
       </main>
     </div>
