@@ -29,63 +29,14 @@ body {
   min-height: 100vh;
 }
 
-body.locked {
-  overflow: hidden;
-}
-
 .page-shell {
   width: min(1380px, calc(100% - 32px));
   margin: 0 auto;
   padding: 24px 0 48px;
 }
-
-.login-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(18, 14, 10, 0.42);
-  backdrop-filter: blur(12px);
-}
-
-.login-card {
-  width: min(460px, 100%);
-  padding: 28px;
-  border-radius: 28px;
-  background: rgba(255, 250, 242, 0.96);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-}
-
-.login-title {
-  font-size: clamp(2.2rem, 5vw, 3.2rem);
-  line-height: 0.95;
-  margin-bottom: 12px;
-}
-
-.login-copy,
-.login-error,
-.login-hint,
 .disclaimer-copy {
   color: var(--muted);
   line-height: 1.6;
-}
-
-.login-btn {
-  margin-top: 18px;
-  width: 100%;
-}
-
-.login-error {
-  color: var(--accent-deep);
-  margin-top: 12px;
-}
-
-.login-hint {
-  margin: 12px 0 0;
-  font-size: 0.92rem;
 }
 
 .hero,

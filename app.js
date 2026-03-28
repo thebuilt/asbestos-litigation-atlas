@@ -360,12 +360,6 @@ const appState = {
 };
 
 const els = {
-  loginOverlay: document.getElementById("login-overlay"),
-  loginForm: document.getElementById("login-form"),
-  loginUsername: document.getElementById("login-username"),
-  loginPassword: document.getElementById("login-password"),
-  loginSubmitBtn: document.getElementById("login-submit-btn"),
-  loginError: document.getElementById("login-error"),
   dataMode: document.getElementById("data-mode"),
   recordCount: document.getElementById("record-count"),
   lastRefresh: document.getElementById("last-refresh"),
@@ -390,14 +384,9 @@ const els = {
   fetchLiveBtn: document.getElementById("fetch-live-btn")
 };
 
-const LOGIN_USERNAME = "admin";
-const LOGIN_PASSWORD = "Pass9876@";
-const LOGIN_STORAGE_KEY = "asbestos-litigation-atlas-auth";
-
 init();
 
 function init() {
-  initializeLoginGate();
   renderCourtToggles();
   bindEvents();
   render();
@@ -452,41 +441,6 @@ function bindEvents() {
       setLoadingState(false);
     }
   });
-}
-
-function initializeLoginGate() {
-  document.body.classList.add("locked");
-  const isAuthenticated = sessionStorage.getItem(LOGIN_STORAGE_KEY) === "granted";
-  if (isAuthenticated) {
-    unlockDashboard();
-    return;
-  }
-
-  const submit = () => {
-    const username = els.loginUsername.value.trim();
-    const password = els.loginPassword.value.trim();
-    if (username === LOGIN_USERNAME && password === LOGIN_PASSWORD) {
-      sessionStorage.setItem(LOGIN_STORAGE_KEY, "granted");
-      els.loginError.hidden = true;
-      unlockDashboard();
-      return;
-    }
-    els.loginError.hidden = false;
-  };
-
-  els.loginForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    submit();
-  });
-  els.loginSubmitBtn.addEventListener("click", (event) => {
-    event.preventDefault();
-    submit();
-  });
-}
-
-function unlockDashboard() {
-  els.loginOverlay.hidden = true;
-  document.body.classList.remove("locked");
 }
 
 async function fetchCourtListenerCases(extraQuery, onProgress = () => {}) {
