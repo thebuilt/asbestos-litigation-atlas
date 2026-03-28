@@ -361,6 +361,7 @@ const appState = {
 
 const els = {
   loginOverlay: document.getElementById("login-overlay"),
+  loginForm: document.getElementById("login-form"),
   loginUsername: document.getElementById("login-username"),
   loginPassword: document.getElementById("login-password"),
   loginSubmitBtn: document.getElementById("login-submit-btn"),
@@ -458,25 +459,28 @@ function initializeLoginGate() {
   const isAuthenticated = sessionStorage.getItem(LOGIN_STORAGE_KEY) === "granted";
   if (isAuthenticated) {
     unlockDashboard();
+    return;
   }
 
   const submit = () => {
     const username = els.loginUsername.value.trim();
-    const password = els.loginPassword.value;
+    const password = els.loginPassword.value.trim();
     if (username === LOGIN_USERNAME && password === LOGIN_PASSWORD) {
       sessionStorage.setItem(LOGIN_STORAGE_KEY, "granted");
+      els.loginError.hidden = true;
       unlockDashboard();
       return;
     }
     els.loginError.hidden = false;
   };
 
-  els.loginSubmitBtn.addEventListener("click", submit);
-  els.loginPassword.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") submit();
+  els.loginForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    submit();
   });
-  els.loginUsername.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") submit();
+  els.loginSubmitBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    submit();
   });
 }
 

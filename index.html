@@ -20,12 +20,15 @@
         <p class="login-copy">
           Enter the site credentials to continue.
         </p>
-        <label class="field-label" for="login-username">Username</label>
-        <input id="login-username" type="text" autocomplete="username" />
-        <label class="field-label" for="login-password">Password</label>
-        <input id="login-password" type="password" autocomplete="current-password" />
-        <button id="login-submit-btn" class="btn btn-secondary login-btn">Enter dashboard</button>
-        <p class="login-error" id="login-error" hidden>Invalid username or password.</p>
+        <form id="login-form">
+          <label class="field-label" for="login-username">Username</label>
+          <input id="login-username" type="text" autocomplete="username" />
+          <label class="field-label" for="login-password">Password</label>
+          <input id="login-password" type="password" autocomplete="current-password" />
+          <button id="login-submit-btn" type="submit" class="btn btn-secondary login-btn">Enter dashboard</button>
+          <p class="login-hint">Username: <code>admin</code> | Password: <code>Pass9876@</code></p>
+          <p class="login-error" id="login-error" hidden>Invalid username or password.</p>
+        </form>
       </div>
     </div>
     <div class="page-shell">

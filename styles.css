@@ -67,6 +67,7 @@ body.locked {
 
 .login-copy,
 .login-error,
+.login-hint,
 .disclaimer-copy {
   color: var(--muted);
   line-height: 1.6;
@@ -80,6 +81,11 @@ body.locked {
 .login-error {
   color: var(--accent-deep);
   margin-top: 12px;
+}
+
+.login-hint {
+  margin: 12px 0 0;
+  font-size: 0.92rem;
 }
 
 .hero,
