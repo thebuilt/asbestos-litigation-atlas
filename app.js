@@ -384,11 +384,19 @@ const els = {
   usMap: document.getElementById("us-map"),
   mapLegend: document.getElementById("map-legend"),
   customQuery: document.getElementById("custom-query"),
-  fetchLiveBtn: document.getElementById("fetch-live-btn")
+  fetchLiveBtn: document.getElementById("fetch-live-btn"),
+  adminResyncBtn: document.getElementById("admin-resync-btn"),
+  datasetRequestPanel: document.getElementById("dataset-request-panel"),
+  requesterName: document.getElementById("requester-name"),
+  requesterEmail: document.getElementById("requester-email"),
+  requestQuery: document.getElementById("request-query"),
+  requestNote: document.getElementById("request-note"),
+  requestDatasetBtn: document.getElementById("request-dataset-btn")
 };
 
 const LIVE_CACHE_KEY = "asbestos-litigation-atlas-live-cache";
 const LIVE_CACHE_META_KEY = "asbestos-litigation-atlas-live-cache-meta";
+const REQUEST_DESTINATION_EMAIL = "raja@thebuilt.in";
 
 init();
 
@@ -397,6 +405,9 @@ function init() {
   renderCourtToggles();
   bindEvents();
   render();
+  if (appState.mode !== "live") {
+    loadSharedServerCache();
+  }
 }
 
 function bindEvents() {
@@ -421,7 +432,8 @@ function bindEvents() {
   });
 
   els.fetchLiveBtn.addEventListener("click", async () => {
-    setLoadingState(true, "Querying the backend asbestos search service...");
+    setLoadingState(true, "Loading the shared cached dataset...");
+    toggleDatasetRequestPanel(false);
 
     try {
       const payload = await fetchCourtListenerCases(
@@ -432,12 +444,13 @@ function bindEvents() {
       appState.mode = "live";
       appState.rawCases = liveCases.length ? liveCases : [...showcaseCases];
       saveCachedDataset(liveCases, {
-        syncedAt: new Date().toISOString(),
-        extraQuery: els.customQuery.value.trim()
+        syncedAt: payload.syncedAt || new Date().toISOString(),
+        extraQuery: els.customQuery.value.trim(),
+        source: payload.source || "shared_cache"
       });
       setStatus(
         liveCases.length
-          ? `Loaded ${liveCases.length} live records from the backend CourtListener search service.`
+          ? `Loaded ${liveCases.length} cases from the shared server cache.`
           : "Live fetch returned no normalized records, so the showcase dataset remains available.",
         false
       );
@@ -445,12 +458,79 @@ function bindEvents() {
       render();
     } catch (error) {
       console.error(error);
-      setStatus(
-        "Backend fetch failed. Check the Vercel COURTLISTENER_API_TOKEN and try again. The showcase dataset is still available.",
-        true
-      );
+      if (error.status === 404) {
+        primeDatasetRequestForm(els.customQuery.value.trim());
+        toggleDatasetRequestPanel(true);
+        setStatus(
+          "No shared dataset exists yet for this query. Use the request form to email the operator for a sync.",
+          true
+        );
+      } else {
+        setStatus(
+          "The shared dataset could not be loaded right now. Please try again shortly.",
+          true
+        );
+      }
       setLoadingState(false);
     }
+  });
+
+  els.adminResyncBtn.addEventListener("click", async () => {
+    const adminToken = window.prompt("Enter the admin resync token");
+    if (!adminToken) {
+      return;
+    }
+
+    setLoadingState(true, "Admin resync is fetching fresh CourtListener data...");
+
+    try {
+      const payload = await forceAdminResync(adminToken, els.customQuery.value.trim());
+      const liveCases = Array.isArray(payload.cases) ? payload.cases : [];
+      appState.mode = "live";
+      appState.rawCases = liveCases.length ? liveCases : [...showcaseCases];
+      saveCachedDataset(liveCases, {
+        syncedAt: payload.syncedAt || new Date().toISOString(),
+        extraQuery: els.customQuery.value.trim(),
+        source: "courtlistener"
+      });
+      setStatus(
+        liveCases.length
+          ? `Admin resync completed and cached ${liveCases.length} fresh cases on the server.`
+          : "Admin resync finished but returned no normalized records.",
+        false
+      );
+      setLoadingState(false);
+      render();
+    } catch (error) {
+      console.error(error);
+      setStatus("Admin resync failed. Check ADMIN_RESYNC_TOKEN and COURTLISTENER_API_TOKEN in Vercel.", true);
+      setLoadingState(false);
+    }
+  });
+
+  els.requestDatasetBtn.addEventListener("click", () => {
+    const subjectQuery = (els.requestQuery.value || els.customQuery.value || "default asbestos dataset").trim();
+    const requesterName = els.requesterName.value.trim() || "Unknown requester";
+    const requesterEmail = els.requesterEmail.value.trim() || "No email provided";
+    const requestNote = els.requestNote.value.trim() || "No additional context provided.";
+    const subject = `Dataset sync request: ${subjectQuery}`;
+    const body = [
+      "Hello,",
+      "",
+      "A user is requesting that this asbestos litigation dataset slice be synced into the shared cache.",
+      "",
+      `Requested query: ${subjectQuery}`,
+      `Requester name: ${requesterName}`,
+      `Requester email: ${requesterEmail}`,
+      "",
+      "Request context:",
+      requestNote,
+      "",
+      "Please review and, if appropriate, run an admin resync for this query."
+    ].join("\n");
+
+    window.location.href = `mailto:${REQUEST_DESTINATION_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    setStatus(`Opened an email draft to ${REQUEST_DESTINATION_EMAIL} with the dataset request details.`, false);
   });
 }
 
@@ -502,7 +582,10 @@ async function fetchCourtListenerCases(extraQuery, onProgress = () => {}) {
 
   const payload = await response.json();
   if (!response.ok) {
-    throw new Error(payload.error || `Backend request failed with status ${response.status}`);
+    const error = new Error(payload.error || `Backend request failed with status ${response.status}`);
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
   }
 
   if (Array.isArray(payload.progress) && payload.progress.length) {
@@ -513,6 +596,56 @@ async function fetchCourtListenerCases(extraQuery, onProgress = () => {}) {
   }
 
   return payload;
+}
+
+async function forceAdminResync(adminToken, extraQuery) {
+  const url = new URL("./api/admin-resync", window.location.href);
+  if (extraQuery) {
+    url.searchParams.set("extraQuery", extraQuery);
+  }
+
+  const response = await fetch(url.toString(), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "x-admin-resync-token": adminToken
+    }
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error || `Admin resync failed with status ${response.status}`);
+  }
+
+  return payload;
+}
+
+async function loadSharedServerCache() {
+  try {
+    const payload = await fetchCourtListenerCases(
+      "",
+      (message) => setStatus(message, false)
+    );
+    const liveCases = Array.isArray(payload.cases) ? payload.cases : [];
+    if (liveCases.length) {
+      appState.mode = "live";
+      appState.rawCases = liveCases;
+      saveCachedDataset(liveCases, {
+        syncedAt: payload.syncedAt || new Date().toISOString(),
+        extraQuery: "",
+        source: payload.source || "shared_cache"
+      });
+      setStatus(
+        payload.source === "shared_cache"
+          ? `Loaded ${liveCases.length} cases from the shared server cache.`
+          : `Loaded ${liveCases.length} cases from the backend search service.`,
+        false
+      );
+      render();
+    }
+  } catch (error) {
+    console.error("Shared cache bootstrap failed", error);
+  }
 }
 
 function inferCourtType(courtName, type) {
@@ -599,12 +732,21 @@ function setStatus(message, isError) {
   els.statusMessage.style.color = isError ? "#7f2510" : "#7f2510";
 }
 
+function toggleDatasetRequestPanel(isVisible) {
+  els.datasetRequestPanel.hidden = !isVisible;
+}
+
+function primeDatasetRequestForm(query) {
+  els.requestQuery.value = query || "default asbestos dataset";
+}
+
 function setLoadingState(isLoading, message) {
   if (message) {
     setStatus(message, false);
   }
   els.fetchLiveBtn.disabled = isLoading;
-  els.fetchLiveBtn.textContent = isLoading ? "Refreshing..." : "Refresh live CourtListener data";
+  els.adminResyncBtn.disabled = isLoading;
+  els.fetchLiveBtn.textContent = isLoading ? "Loading..." : "Load shared case dataset";
   els.statusProgress.hidden = !isLoading;
 }
 
