@@ -503,7 +503,7 @@ function bindEvents() {
       render();
     } catch (error) {
       console.error(error);
-      setStatus("Admin resync failed. Check ADMIN_RESYNC_TOKEN and COURTLISTENER_API_TOKEN in Vercel.", true);
+      setStatus(`Admin resync failed: ${error.message || "Unknown error"}`, true);
       setLoadingState(false);
     }
   });
@@ -614,7 +614,10 @@ async function forceAdminResync(adminToken, extraQuery) {
 
   const payload = await response.json();
   if (!response.ok) {
-    throw new Error(payload.error || `Admin resync failed with status ${response.status}`);
+    const error = new Error(payload.error || `Admin resync failed with status ${response.status}`);
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
   }
 
   return payload;

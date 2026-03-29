@@ -52,7 +52,7 @@ body {
 
 .hero {
   grid-template-columns: 2.1fr 1fr;
-  align-items: stretch;
+  align-items: start;
   margin-bottom: 22px;
 }
 
@@ -103,6 +103,11 @@ body {
   gap: 10px;
 }
 
+.request-panel-bottom {
+  margin-top: 18px;
+  margin-bottom: 18px;
+}
+
 .eyebrow {
   margin: 0 0 8px;
   text-transform: uppercase;
@@ -141,9 +146,12 @@ h3 {
 .setup-steps,
 .case-meta,
 .case-summary,
+.status-message,
+.disclaimer-copy,
 .insight-item p {
   color: var(--muted);
   line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 .hero-text {
@@ -243,6 +251,7 @@ textarea {
   background: var(--accent-soft);
   color: var(--accent-deep);
   font-size: 0.92rem;
+  word-break: break-word;
 }
 
 .status-message-wrap {

@@ -52,47 +52,10 @@
             <code>"wrongful death" OR mesothelioma</code>,
             <code>talc OR vermiculite OR brake</code>
           </p>
-          <section id="dataset-request-panel" class="request-panel" hidden>
-            <h3>Request this dataset</h3>
-            <p class="field-hint">
-              If this query has not been synced to the shared dataset yet, send a
-              request to the site operator so it can be reviewed and refreshed.
-            </p>
-            <label class="field-label" for="requester-name">Your name</label>
-            <input id="requester-name" type="text" placeholder="Enter your name" />
-            <label class="field-label" for="requester-email">Your email</label>
-            <input id="requester-email" type="email" placeholder="Enter your email" />
-            <label class="field-label" for="request-query">Requested query</label>
-            <input id="request-query" type="text" placeholder='Example: "talc" OR mesothelioma' />
-            <label class="field-label" for="request-note">Why do you need this slice?</label>
-            <textarea id="request-note" rows="4" placeholder="Optional context about the cases or issue you are researching"></textarea>
-            <button id="request-dataset-btn" class="btn btn-primary" type="button">Email dataset request</button>
-            <p class="field-hint">
-              This opens an email draft to the site operator with the request details.
-            </p>
-          </section>
         </aside>
       </header>
 
       <main>
-        <section class="panel disclaimer-panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Disclaimer</p>
-              <h2>Educational And Research Use Only</h2>
-            </div>
-          </div>
-          <p class="disclaimer-copy">
-            This dashboard is provided solely for educational, informational, and research purposes. It is an exploratory interface over third-party court data and automated text categorization. It is not legal advice, not a substitute for professional counsel, not a litigation decision tool, and not a certified or exhaustive statement of U.S. asbestos-related case activity.
-          </p>
-          <p class="disclaimer-copy">
-            Case labels, outcomes, occupations, exposure types, material categories, and geographic inferences may be incomplete, overinclusive, underinclusive, or incorrect because they rely on search retrieval, snippet availability, and automated normalization rules rather than manual case-by-case legal review.
-          </p>
-          <p class="disclaimer-copy">
-            Users should independently verify all case details, holdings, procedural posture, jurisdiction, and factual assertions from the primary source documents before relying on any result. Use of this dashboard constitutes acceptance that the operator makes no warranty regarding completeness, accuracy, fitness for legal use, or suitability for business, compliance, medical, insurance, or litigation strategy decisions.
-          </p>
-        </section>
-
         <section class="status-bar">
           <div>
             <span class="status-label">Mode</span>
@@ -288,6 +251,49 @@
             </div>
           </div>
           <div id="case-results" class="case-results"></div>
+        </section>
+
+        <section id="dataset-request-panel" class="panel request-panel-bottom" hidden>
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Request</p>
+              <h2>Request this dataset</h2>
+            </div>
+          </div>
+          <p class="field-hint">
+            If this query has not been synced to the shared dataset yet, send a
+            request to the site operator so it can be reviewed and refreshed.
+          </p>
+          <label class="field-label" for="requester-name">Your name</label>
+          <input id="requester-name" type="text" placeholder="Enter your name" />
+          <label class="field-label" for="requester-email">Your email</label>
+          <input id="requester-email" type="email" placeholder="Enter your email" />
+          <label class="field-label" for="request-query">Requested query</label>
+          <input id="request-query" type="text" placeholder='Example: "talc" OR mesothelioma' />
+          <label class="field-label" for="request-note">Why do you need this slice?</label>
+          <textarea id="request-note" rows="4" placeholder="Optional context about the cases or issue you are researching"></textarea>
+          <button id="request-dataset-btn" class="btn btn-primary" type="button">Email dataset request</button>
+          <p class="field-hint">
+            This opens an email draft to the site operator with the request details.
+          </p>
+        </section>
+
+        <section class="panel disclaimer-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Disclaimer</p>
+              <h2>Educational And Research Use Only</h2>
+            </div>
+          </div>
+          <p class="disclaimer-copy">
+            This dashboard is provided solely for educational, informational, and research purposes. It is an exploratory interface over third-party court data and automated text categorization. It is not legal advice, not a substitute for professional counsel, not a litigation decision tool, and not a certified or exhaustive statement of U.S. asbestos-related case activity.
+          </p>
+          <p class="disclaimer-copy">
+            Case labels, outcomes, occupations, exposure types, material categories, and geographic inferences may be incomplete, overinclusive, underinclusive, or incorrect because they rely on search retrieval, snippet availability, and automated normalization rules rather than manual case-by-case legal review.
+          </p>
+          <p class="disclaimer-copy">
+            Users should independently verify all case details, holdings, procedural posture, jurisdiction, and factual assertions from the primary source documents before relying on any result. Use of this dashboard constitutes acceptance that the operator makes no warranty regarding completeness, accuracy, fitness for legal use, or suitability for business, compliance, medical, insurance, or litigation strategy decisions.
+          </p>
         </section>
       </main>
     </div>
