@@ -1,0 +1,45 @@
+{
+  "syncedAt": "2026-03-29T03:04:23.833Z",
+  "count": 1464,
+  "extraQuery": "",
+  "completedPlans": 6,
+  "totalPlans": 6,
+  "progress": [
+    {
+      "label": "opinion corpus",
+      "type": "o",
+      "pagesFetched": 4,
+      "rawHits": 400
+    },
+    {
+      "label": "mesothelioma-focused opinions",
+      "type": "o",
+      "pagesFetched": 4,
+      "rawHits": 400
+    },
+    {
+      "label": "intent-focused opinions",
+      "type": "o",
+      "pagesFetched": 4,
+      "rawHits": 400
+    },
+    {
+      "label": "federal recap dockets",
+      "type": "r",
+      "pagesFetched": 4,
+      "rawHits": 400
+    },
+    {
+      "label": "recap filing documents",
+      "type": "rd",
+      "pagesFetched": 4,
+      "rawHits": 400
+    },
+    {
+      "label": "docket search",
+      "type": "d",
+      "pagesFetched": 4,
+      "rawHits": 400
+    }
+  ]
+}

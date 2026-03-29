@@ -406,7 +406,7 @@ function init() {
   bindEvents();
   render();
   if (appState.mode !== "live") {
-    loadSharedServerCache();
+    loadSavedDataset();
   }
 }
 
@@ -432,21 +432,21 @@ function bindEvents() {
   });
 
   els.fetchLiveBtn.addEventListener("click", async () => {
-    setLoadingState(true, "Loading the shared cached dataset...");
+    setLoadingState(true, "Loading the saved dataset...");
     toggleDatasetRequestPanel(false);
 
     try {
-      const payload = await fetchCourtListenerCases(
+      const payload = await fetchSavedDataset(
         els.customQuery.value.trim(),
         (message) => setStatus(message, false)
       );
       const liveCases = Array.isArray(payload.cases) ? payload.cases : [];
       appState.mode = "live";
-      appState.rawCases = liveCases.length ? liveCases : [...showcaseCases];
+      appState.rawCases = liveCases;
       saveCachedDataset(liveCases, {
         syncedAt: payload.syncedAt || new Date().toISOString(),
         extraQuery: els.customQuery.value.trim(),
-        source: payload.source || "shared_cache",
+        source: payload.source || "saved_dataset",
         completedPlans: payload.completedPlans || null,
         totalPlans: payload.totalPlans || null,
         hasMore: Boolean(payload.hasMore),
@@ -454,8 +454,8 @@ function bindEvents() {
       });
       setStatus(
         liveCases.length
-          ? `Loaded ${liveCases.length} cases from the shared server cache.`
-          : "Live fetch returned no normalized records, so the showcase dataset remains available.",
+          ? `Loaded ${liveCases.length} cases from the saved dataset.`
+          : "The saved dataset is currently empty.",
         false
       );
       setLoadingState(false);
@@ -466,12 +466,12 @@ function bindEvents() {
         primeDatasetRequestForm(els.customQuery.value.trim());
         toggleDatasetRequestPanel(true);
         setStatus(
-          "No shared dataset exists yet for this query. Use the request form to email the operator for a sync.",
+          "No saved dataset exists yet. Run the ingestion script and redeploy, or use the request form to email the operator.",
           true
         );
       } else {
         setStatus(
-          "The shared dataset could not be loaded right now. Please try again shortly.",
+          "The saved dataset could not be loaded right now. Please try again shortly.",
           true
         );
       }
@@ -590,12 +590,9 @@ function resolveBackendErrorText(payload, fallback) {
   return fallback;
 }
 
-async function fetchCourtListenerCases(extraQuery, onProgress = () => {}) {
-  onProgress("Sending request to /api/search...");
-  const url = new URL("./api/search", window.location.href);
-  if (extraQuery) {
-    url.searchParams.set("extraQuery", extraQuery);
-  }
+async function fetchSavedDataset(extraQuery, onProgress = () => {}) {
+  onProgress("Sending request to /api/dataset...");
+  const url = new URL("./api/dataset", window.location.href);
 
   const headers = {
     Accept: "application/json"
@@ -609,7 +606,7 @@ async function fetchCourtListenerCases(extraQuery, onProgress = () => {}) {
   const payload = await response.json();
   if (!response.ok) {
     const error = new Error(
-      resolveBackendErrorText(payload, `Backend request failed with status ${response.status}`)
+      resolveBackendErrorText(payload, `Dataset request failed with status ${response.status}`)
     );
     error.status = response.status;
     error.payload = payload;
@@ -664,31 +661,33 @@ async function forceAdminResync(adminToken, extraQuery) {
   return payload;
 }
 
-async function loadSharedServerCache() {
+async function loadSavedDataset() {
   try {
-    const payload = await fetchCourtListenerCases(
+    const payload = await fetchSavedDataset(
       "",
       (message) => setStatus(message, false)
     );
     const liveCases = Array.isArray(payload.cases) ? payload.cases : [];
-    if (liveCases.length) {
-      appState.mode = "live";
-      appState.rawCases = liveCases;
-      saveCachedDataset(liveCases, {
-        syncedAt: payload.syncedAt || new Date().toISOString(),
-        extraQuery: "",
-        source: payload.source || "shared_cache"
-      });
-      setStatus(
-        payload.source === "shared_cache"
-          ? `Loaded ${liveCases.length} cases from the shared server cache.`
-          : `Loaded ${liveCases.length} cases from the backend search service.`,
-        false
-      );
-      render();
-    }
+    appState.mode = "live";
+    appState.rawCases = liveCases;
+    saveCachedDataset(liveCases, {
+      syncedAt: payload.syncedAt || new Date().toISOString(),
+      extraQuery: "",
+      source: payload.source || "saved_dataset",
+      completedPlans: payload.completedPlans || null,
+      totalPlans: payload.totalPlans || null,
+      hasMore: Boolean(payload.hasMore),
+      nextPlanIndex: payload.hasMore && Number.isInteger(payload.completedPlans) ? payload.completedPlans : null
+    });
+    setStatus(
+      liveCases.length
+        ? `Loaded ${liveCases.length} cases from the saved dataset.`
+        : "The saved dataset is currently empty.",
+      false
+    );
+    render();
   } catch (error) {
-    console.error("Shared cache bootstrap failed", error);
+    console.error("Saved dataset bootstrap failed", error);
   }
 }
 

@@ -1,11 +1,18 @@
 "use strict";
 
-const { get, put } = require("@vercel/blob");
+let blobClient = null;
+try {
+  blobClient = require("@vercel/blob");
+} catch {
+  blobClient = null;
+}
 
 const SEARCH_PAGE_SIZE = 100;
 const MAX_PAGES_PER_QUERY = 3;
 const MAX_ITEMS_PER_PLAN = 250;
 const SHARED_CACHE_TTL_HOURS = 24;
+const LOCAL_INGEST_MAX_PAGES = 20;
+const LOCAL_INGEST_MAX_ITEMS_PER_PLAN = 2000;
 
 const asbestosQuery =
   '(asbestos OR mesothelioma OR asbestosis OR chrysotile OR amosite OR crocidolite OR tremolite OR actinolite OR anthophyllite)';
@@ -84,7 +91,9 @@ function makeCacheKey(extraQuery) {
 }
 
 async function loadSharedCache(cacheKey) {
+  if (!blobClient) return null;
   try {
+    const { get } = blobClient;
     const pathname = `cache/${cacheKey}.json`;
     const blob = await get(pathname, { access: "public" });
     if (!blob) return null;
@@ -102,6 +111,10 @@ async function loadSharedCache(cacheKey) {
 }
 
 async function saveSharedCache(cacheKey, payload) {
+  if (!blobClient) {
+    throw new Error("Vercel Blob is not available in this environment.");
+  }
+  const { put } = blobClient;
   await put(`cache/${cacheKey}.json`, JSON.stringify(payload), {
     access: "public",
     addRandomSuffix: false,
@@ -111,7 +124,9 @@ async function saveSharedCache(cacheKey, payload) {
 }
 
 async function loadSyncState(cacheKey) {
+  if (!blobClient) return null;
   try {
+    const { get } = blobClient;
     const pathname = `sync/${cacheKey}.json`;
     const blob = await get(pathname, { access: "public" });
     if (!blob) return null;
@@ -125,6 +140,10 @@ async function loadSyncState(cacheKey) {
 }
 
 async function saveSyncState(cacheKey, payload) {
+  if (!blobClient) {
+    throw new Error("Vercel Blob is not available in this environment.");
+  }
+  const { put } = blobClient;
   await put(`sync/${cacheKey}.json`, JSON.stringify(payload), {
     access: "public",
     addRandomSuffix: false,
@@ -134,6 +153,10 @@ async function saveSyncState(cacheKey, payload) {
 }
 
 async function clearSyncState(cacheKey) {
+  if (!blobClient) {
+    throw new Error("Vercel Blob is not available in this environment.");
+  }
+  const { put } = blobClient;
   await put(`sync/${cacheKey}.json`, JSON.stringify({ done: true, clearedAt: new Date().toISOString() }), {
     access: "public",
     addRandomSuffix: false,
@@ -142,25 +165,25 @@ async function clearSyncState(cacheKey) {
   });
 }
 
-async function fetchCourtListenerCases(token, extraQuery) {
-  const queryPlans = buildSearchPlans(extraQuery);
+async function fetchCourtListenerCases(token, extraQuery, options = {}) {
+  const queryPlans = buildSearchPlans(extraQuery, options);
   const progress = [];
   const responses = [];
   for (let index = 0; index < queryPlans.length; index += 1) {
     const plan = queryPlans[index];
-    const items = await fetchSearchPages(token, plan);
+    const items = await fetchSearchPages(token, plan, options);
     progress.push({ label: plan.label, type: plan.type, pagesFetched: Math.ceil(items.length / SEARCH_PAGE_SIZE), rawHits: items.length });
     responses.push(items.map((item, itemIndex) => normalizeCourtListenerResult(item, plan.type, itemIndex)));
   }
   return { cases: dedupeCases(responses.flat()).filter((item) => item.caseName), progress };
 }
 
-async function fetchCourtListenerCasesIncremental(token, extraQuery, syncState = {}) {
-  const queryPlans = buildSearchPlans(extraQuery);
+async function fetchCourtListenerCasesIncremental(token, extraQuery, syncState = {}, options = {}) {
+  const queryPlans = buildSearchPlans(extraQuery, options);
   const planIndex = Number.isInteger(syncState.planIndex) ? syncState.planIndex : 0;
   const safePlanIndex = Math.max(0, Math.min(planIndex, queryPlans.length - 1));
   const plan = queryPlans[safePlanIndex];
-  const items = await fetchSearchPages(token, plan);
+  const items = await fetchSearchPages(token, plan, options);
   const normalizedCases = dedupeCases(items.map((item, itemIndex) => normalizeCourtListenerResult(item, plan.type, itemIndex)))
     .filter((item) => item.caseName);
   return {
@@ -179,24 +202,31 @@ async function fetchCourtListenerCasesIncremental(token, extraQuery, syncState =
   };
 }
 
-function buildSearchPlans(extraQuery) {
-  return [
+function buildSearchPlans(extraQuery, options = {}) {
+  const plans = [
     { type: "o", q: buildOpinionQuery(extraQuery), label: "opinion corpus" },
     { type: "o", q: buildMesotheliomaOpinionQuery(extraQuery), label: "mesothelioma-focused opinions" },
     { type: "r", q: buildRecapQuery(extraQuery), label: "federal recap dockets" },
     { type: "d", q: buildDocketQuery(extraQuery), label: "docket search" }
   ];
+  if (options.includeHeavyPlans) {
+    plans.splice(2, 0, { type: "o", q: buildIntentOpinionQuery(extraQuery), label: "intent-focused opinions" });
+    plans.splice(plans.length - 1, 0, { type: "rd", q: buildRecapDocumentQuery(extraQuery), label: "recap filing documents" });
+  }
+  return plans;
 }
 
-async function fetchSearchPages(token, plan) {
+async function fetchSearchPages(token, plan, options = {}) {
   const results = [];
+  const maxPages = Number.isInteger(options.maxPagesPerQuery) ? options.maxPagesPerQuery : MAX_PAGES_PER_QUERY;
+  const maxItems = Number.isInteger(options.maxItemsPerPlan) ? options.maxItemsPerPlan : MAX_ITEMS_PER_PLAN;
   let nextUrl = new URL("https://www.courtlistener.com/api/rest/v4/search/");
   nextUrl.searchParams.set("q", plan.q);
   nextUrl.searchParams.set("type", plan.type);
   nextUrl.searchParams.set("highlight", "on");
   nextUrl.searchParams.set("page_size", String(SEARCH_PAGE_SIZE));
   let page = 0;
-  while (nextUrl && page < MAX_PAGES_PER_QUERY) {
+  while (nextUrl && page < maxPages) {
     const response = await fetch(nextUrl.toString(), {
       headers: { Authorization: `Token ${token}`, Accept: "application/json" }
     });
@@ -206,13 +236,13 @@ async function fetchSearchPages(token, plan) {
     }
     const payload = await response.json();
     if (Array.isArray(payload.results)) results.push(...payload.results);
-    if (results.length >= MAX_ITEMS_PER_PLAN) {
+    if (results.length >= maxItems) {
       break;
     }
     nextUrl = payload.next ? new URL(payload.next) : null;
     page += 1;
   }
-  return results.slice(0, MAX_ITEMS_PER_PLAN);
+  return results.slice(0, maxItems);
 }
 
 function buildOpinionQuery(extraQuery) {
@@ -356,5 +386,7 @@ module.exports = {
   saveSyncState,
   clearSyncState,
   fetchCourtListenerCases,
-  fetchCourtListenerCasesIncremental
+  fetchCourtListenerCasesIncremental,
+  LOCAL_INGEST_MAX_PAGES,
+  LOCAL_INGEST_MAX_ITEMS_PER_PLAN
 };

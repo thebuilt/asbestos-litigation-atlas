@@ -5,9 +5,6 @@ const {
   makeCacheKey,
   loadSharedCache,
   saveSharedCache,
-  loadSyncState,
-  saveSyncState,
-  clearSyncState,
   fetchCourtListenerCasesIncremental
 } = require("./_search-core");
 
@@ -49,17 +46,14 @@ module.exports = async (req, res) => {
     const serverCases = Array.isArray(existingPayload?.cases) ? existingPayload.cases : [];
     const clientCases = Array.isArray(body?.existingCases) ? body.existingCases : [];
     const existingCases = dedupeCases([...serverCases, ...clientCases]);
-    const rawSyncState = (await loadSyncState(cacheKey)) || {};
     const syncState =
       Number.isInteger(resumeFromPlanQuery)
         ? { planIndex: resumeFromPlanQuery }
         : Number.isInteger(body?.resumeFromPlan)
-        ? { planIndex: body.resumeFromPlan }
-        : existingPayload?.hasMore && Number.isInteger(existingPayload.completedPlans)
-        ? { planIndex: existingPayload.completedPlans }
-        : Number.isInteger(rawSyncState.planIndex)
-          ? rawSyncState
-          : {};
+          ? { planIndex: body.resumeFromPlan }
+          : existingPayload?.hasMore && Number.isInteger(existingPayload.completedPlans)
+            ? { planIndex: existingPayload.completedPlans }
+            : { planIndex: 0 };
     const batch = await fetchCourtListenerCasesIncremental(token, extraQuery, syncState);
     const mergedCases = dedupeCases([...existingCases, ...batch.cases]);
     const responsePayload = {
@@ -75,14 +69,6 @@ module.exports = async (req, res) => {
       currentPlan: batch.plan.label
     };
     await saveSharedCache(cacheKey, responsePayload);
-    if (batch.hasMore) {
-      await saveSyncState(cacheKey, {
-        planIndex: batch.nextPlanIndex,
-        updatedAt: new Date().toISOString()
-      });
-    } else {
-      await clearSyncState(cacheKey);
-    }
     res.status(200).json(responsePayload);
   } catch (error) {
     res.status(500).json({
