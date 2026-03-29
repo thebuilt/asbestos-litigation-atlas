@@ -38,13 +38,18 @@ module.exports = async (req, res) => {
 
   const extraQuery = typeof req.query.extraQuery === "string" ? req.query.extraQuery.trim() : "";
   const cacheKey = makeCacheKey(extraQuery);
+  const body = readJsonBody(req);
 
   try {
     const existingPayload = await loadSharedCache(cacheKey);
-    const existingCases = Array.isArray(existingPayload?.cases) ? existingPayload.cases : [];
+    const serverCases = Array.isArray(existingPayload?.cases) ? existingPayload.cases : [];
+    const clientCases = Array.isArray(body?.existingCases) ? body.existingCases : [];
+    const existingCases = dedupeCases([...serverCases, ...clientCases]);
     const rawSyncState = (await loadSyncState(cacheKey)) || {};
     const syncState =
-      existingPayload?.hasMore && Number.isInteger(existingPayload.completedPlans)
+      Number.isInteger(body?.resumeFromPlan)
+        ? { planIndex: body.resumeFromPlan }
+        : existingPayload?.hasMore && Number.isInteger(existingPayload.completedPlans)
         ? { planIndex: existingPayload.completedPlans }
         : Number.isInteger(rawSyncState.planIndex)
           ? rawSyncState
@@ -87,4 +92,17 @@ function dedupeCases(items) {
     if (!seen.has(key)) seen.set(key, item);
   }
   return Array.from(seen.values());
+}
+
+function readJsonBody(req) {
+  if (!req.body) return {};
+  if (typeof req.body === "object") return req.body;
+  if (typeof req.body === "string") {
+    try {
+      return JSON.parse(req.body);
+    } catch {
+      return {};
+    }
+  }
+  return {};
 }

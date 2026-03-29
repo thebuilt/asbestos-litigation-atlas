@@ -446,7 +446,11 @@ function bindEvents() {
       saveCachedDataset(liveCases, {
         syncedAt: payload.syncedAt || new Date().toISOString(),
         extraQuery: els.customQuery.value.trim(),
-        source: payload.source || "shared_cache"
+        source: payload.source || "shared_cache",
+        completedPlans: payload.completedPlans || null,
+        totalPlans: payload.totalPlans || null,
+        hasMore: Boolean(payload.hasMore),
+        nextPlanIndex: payload.hasMore && Number.isInteger(payload.completedPlans) ? payload.completedPlans : null
       });
       setStatus(
         liveCases.length
@@ -491,7 +495,11 @@ function bindEvents() {
       saveCachedDataset(liveCases, {
         syncedAt: payload.syncedAt || new Date().toISOString(),
         extraQuery: els.customQuery.value.trim(),
-        source: "courtlistener"
+        source: "courtlistener",
+        completedPlans: payload.completedPlans || null,
+        totalPlans: payload.totalPlans || null,
+        hasMore: Boolean(payload.hasMore),
+        nextPlanIndex: payload.hasMore && Number.isInteger(payload.completedPlans) ? payload.completedPlans : null
       });
       setStatus(
         liveCases.length
@@ -623,13 +631,21 @@ async function forceAdminResync(adminToken, extraQuery) {
   if (extraQuery) {
     url.searchParams.set("extraQuery", extraQuery);
   }
+  const cachedMeta = readCachedMeta();
+  const existingCases = Array.isArray(appState.rawCases) && appState.mode === "live" ? appState.rawCases : [];
+  const resumeFromPlan = Number.isInteger(cachedMeta?.nextPlanIndex) ? cachedMeta.nextPlanIndex : null;
 
   const response = await fetch(url.toString(), {
     method: "POST",
     headers: {
       Accept: "application/json",
+      "Content-Type": "application/json",
       "x-admin-resync-token": adminToken
-    }
+    },
+    body: JSON.stringify({
+      existingCases,
+      resumeFromPlan
+    })
   });
 
   const payload = await response.json();
@@ -902,7 +918,7 @@ function resolveLastRefreshText() {
   }
 
   try {
-    const cachedMeta = JSON.parse(localStorage.getItem(LIVE_CACHE_META_KEY) || "null");
+    const cachedMeta = readCachedMeta();
     if (cachedMeta?.syncedAt) {
       return new Date(cachedMeta.syncedAt).toLocaleString();
     }
@@ -911,6 +927,14 @@ function resolveLastRefreshText() {
   }
 
   return new Date().toLocaleString();
+}
+
+function readCachedMeta() {
+  try {
+    return JSON.parse(localStorage.getItem(LIVE_CACHE_META_KEY) || "null");
+  } catch {
+    return null;
+  }
 }
 
 function renderMetrics(filtered, allCases) {
