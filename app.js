@@ -634,6 +634,9 @@ async function forceAdminResync(adminToken, extraQuery) {
   const cachedMeta = readCachedMeta();
   const existingCases = Array.isArray(appState.rawCases) && appState.mode === "live" ? appState.rawCases : [];
   const resumeFromPlan = Number.isInteger(cachedMeta?.nextPlanIndex) ? cachedMeta.nextPlanIndex : null;
+  if (Number.isInteger(resumeFromPlan)) {
+    url.searchParams.set("resumeFromPlan", String(resumeFromPlan));
+  }
 
   const response = await fetch(url.toString(), {
     method: "POST",

@@ -37,6 +37,10 @@ module.exports = async (req, res) => {
   }
 
   const extraQuery = typeof req.query.extraQuery === "string" ? req.query.extraQuery.trim() : "";
+  const resumeFromPlanQuery =
+    typeof req.query.resumeFromPlan === "string" && req.query.resumeFromPlan.trim() !== ""
+      ? Number.parseInt(req.query.resumeFromPlan, 10)
+      : null;
   const cacheKey = makeCacheKey(extraQuery);
   const body = readJsonBody(req);
 
@@ -47,7 +51,9 @@ module.exports = async (req, res) => {
     const existingCases = dedupeCases([...serverCases, ...clientCases]);
     const rawSyncState = (await loadSyncState(cacheKey)) || {};
     const syncState =
-      Number.isInteger(body?.resumeFromPlan)
+      Number.isInteger(resumeFromPlanQuery)
+        ? { planIndex: resumeFromPlanQuery }
+        : Number.isInteger(body?.resumeFromPlan)
         ? { planIndex: body.resumeFromPlan }
         : existingPayload?.hasMore && Number.isInteger(existingPayload.completedPlans)
         ? { planIndex: existingPayload.completedPlans }
