@@ -42,7 +42,13 @@ module.exports = async (req, res) => {
   try {
     const existingPayload = await loadSharedCache(cacheKey);
     const existingCases = Array.isArray(existingPayload?.cases) ? existingPayload.cases : [];
-    const syncState = (await loadSyncState(cacheKey)) || {};
+    const rawSyncState = (await loadSyncState(cacheKey)) || {};
+    const syncState =
+      Number.isInteger(rawSyncState.planIndex)
+        ? rawSyncState
+        : existingPayload?.hasMore && Number.isInteger(existingPayload.completedPlans)
+          ? { planIndex: existingPayload.completedPlans }
+          : {};
     const batch = await fetchCourtListenerCasesIncremental(token, extraQuery, syncState);
     const mergedCases = dedupeCases([...existingCases, ...batch.cases]);
     const responsePayload = {
