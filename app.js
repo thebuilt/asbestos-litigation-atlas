@@ -564,6 +564,22 @@ function saveCachedDataset(cases, meta) {
   }
 }
 
+function resolveBackendErrorText(payload, fallback) {
+  if (!payload) return fallback;
+  if (typeof payload.error === "string" && payload.error.trim()) return payload.error;
+  if (payload.error && typeof payload.error === "object") {
+    if (typeof payload.error.message === "string" && payload.error.message.trim()) {
+      return payload.error.message;
+    }
+    try {
+      return JSON.stringify(payload.error);
+    } catch {
+      return fallback;
+    }
+  }
+  return fallback;
+}
+
 async function fetchCourtListenerCases(extraQuery, onProgress = () => {}) {
   onProgress("Sending request to /api/search...");
   const url = new URL("./api/search", window.location.href);
@@ -582,7 +598,9 @@ async function fetchCourtListenerCases(extraQuery, onProgress = () => {}) {
 
   const payload = await response.json();
   if (!response.ok) {
-    const error = new Error(payload.error || `Backend request failed with status ${response.status}`);
+    const error = new Error(
+      resolveBackendErrorText(payload, `Backend request failed with status ${response.status}`)
+    );
     error.status = response.status;
     error.payload = payload;
     throw error;
@@ -614,7 +632,9 @@ async function forceAdminResync(adminToken, extraQuery) {
 
   const payload = await response.json();
   if (!response.ok) {
-    const error = new Error(payload.error || `Admin resync failed with status ${response.status}`);
+    const error = new Error(
+      resolveBackendErrorText(payload, `Admin resync failed with status ${response.status}`)
+    );
     error.status = response.status;
     error.payload = payload;
     throw error;
