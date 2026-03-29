@@ -85,7 +85,7 @@ function makeCacheKey(extraQuery) {
 async function loadSharedCache(cacheKey) {
   try {
     const pathname = `cache/${cacheKey}.json`;
-    const blob = await get(pathname, { access: "private" });
+    const blob = await get(pathname, { access: "public" });
     if (!blob) return null;
     const text = await new Response(blob.stream()).text();
     const payload = JSON.parse(text);
@@ -100,7 +100,7 @@ async function loadSharedCache(cacheKey) {
 
 async function saveSharedCache(cacheKey, payload) {
   await put(`cache/${cacheKey}.json`, JSON.stringify(payload), {
-    access: "private",
+    access: "public",
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: "application/json"
