@@ -3,7 +3,8 @@
 const { get, put } = require("@vercel/blob");
 
 const SEARCH_PAGE_SIZE = 100;
-const MAX_PAGES_PER_QUERY = 20;
+const MAX_PAGES_PER_QUERY = 3;
+const MAX_ITEMS_PER_PLAN = 250;
 const SHARED_CACHE_TTL_HOURS = 24;
 
 const asbestosQuery =
@@ -124,9 +125,7 @@ function buildSearchPlans(extraQuery) {
   return [
     { type: "o", q: buildOpinionQuery(extraQuery), label: "opinion corpus" },
     { type: "o", q: buildMesotheliomaOpinionQuery(extraQuery), label: "mesothelioma-focused opinions" },
-    { type: "o", q: buildIntentOpinionQuery(extraQuery), label: "intent-focused opinions" },
     { type: "r", q: buildRecapQuery(extraQuery), label: "federal recap dockets" },
-    { type: "rd", q: buildRecapDocumentQuery(extraQuery), label: "recap filing documents" },
     { type: "d", q: buildDocketQuery(extraQuery), label: "docket search" }
   ];
 }
@@ -149,10 +148,13 @@ async function fetchSearchPages(token, plan) {
     }
     const payload = await response.json();
     if (Array.isArray(payload.results)) results.push(...payload.results);
+    if (results.length >= MAX_ITEMS_PER_PLAN) {
+      break;
+    }
     nextUrl = payload.next ? new URL(payload.next) : null;
     page += 1;
   }
-  return results;
+  return results.slice(0, MAX_ITEMS_PER_PLAN);
 }
 
 function buildOpinionQuery(extraQuery) {
