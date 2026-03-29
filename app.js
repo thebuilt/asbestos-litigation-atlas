@@ -495,7 +495,9 @@ function bindEvents() {
       });
       setStatus(
         liveCases.length
-          ? `Admin resync completed and cached ${liveCases.length} fresh cases on the server.`
+          ? payload.hasMore
+            ? `Admin resync saved ${liveCases.length} total cached cases. More sync remains: step ${payload.completedPlans} of ${payload.totalPlans} finished (${payload.currentPlan}). Run it again to continue building the corpus.`
+            : `Admin resync completed and cached ${liveCases.length} total cases on the server.`
           : "Admin resync finished but returned no normalized records.",
         false
       );

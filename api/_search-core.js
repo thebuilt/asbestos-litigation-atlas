@@ -108,6 +108,36 @@ async function saveSharedCache(cacheKey, payload) {
   });
 }
 
+async function loadSyncState(cacheKey) {
+  try {
+    const pathname = `sync/${cacheKey}.json`;
+    const blob = await get(pathname, { access: "public" });
+    if (!blob) return null;
+    const text = await new Response(blob.stream()).text();
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+async function saveSyncState(cacheKey, payload) {
+  await put(`sync/${cacheKey}.json`, JSON.stringify(payload), {
+    access: "public",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json"
+  });
+}
+
+async function clearSyncState(cacheKey) {
+  await put(`sync/${cacheKey}.json`, JSON.stringify({ done: true, clearedAt: new Date().toISOString() }), {
+    access: "public",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json"
+  });
+}
+
 async function fetchCourtListenerCases(token, extraQuery) {
   const queryPlans = buildSearchPlans(extraQuery);
   const progress = [];
@@ -119,6 +149,30 @@ async function fetchCourtListenerCases(token, extraQuery) {
     responses.push(items.map((item, itemIndex) => normalizeCourtListenerResult(item, plan.type, itemIndex)));
   }
   return { cases: dedupeCases(responses.flat()).filter((item) => item.caseName), progress };
+}
+
+async function fetchCourtListenerCasesIncremental(token, extraQuery, syncState = {}) {
+  const queryPlans = buildSearchPlans(extraQuery);
+  const planIndex = Number.isInteger(syncState.planIndex) ? syncState.planIndex : 0;
+  const safePlanIndex = Math.max(0, Math.min(planIndex, queryPlans.length - 1));
+  const plan = queryPlans[safePlanIndex];
+  const items = await fetchSearchPages(token, plan);
+  const normalizedCases = dedupeCases(items.map((item, itemIndex) => normalizeCourtListenerResult(item, plan.type, itemIndex)))
+    .filter((item) => item.caseName);
+  return {
+    planIndex: safePlanIndex,
+    totalPlans: queryPlans.length,
+    plan,
+    cases: normalizedCases,
+    progress: [{
+      label: plan.label,
+      type: plan.type,
+      pagesFetched: Math.ceil(items.length / SEARCH_PAGE_SIZE),
+      rawHits: items.length
+    }],
+    hasMore: safePlanIndex < queryPlans.length - 1,
+    nextPlanIndex: safePlanIndex < queryPlans.length - 1 ? safePlanIndex + 1 : null
+  };
 }
 
 function buildSearchPlans(extraQuery) {
@@ -294,5 +348,9 @@ module.exports = {
   makeCacheKey,
   loadSharedCache,
   saveSharedCache,
-  fetchCourtListenerCases
+  loadSyncState,
+  saveSyncState,
+  clearSyncState,
+  fetchCourtListenerCases,
+  fetchCourtListenerCasesIncremental
 };

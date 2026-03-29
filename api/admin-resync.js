@@ -3,8 +3,12 @@
 const {
   setCors,
   makeCacheKey,
+  loadSharedCache,
   saveSharedCache,
-  fetchCourtListenerCases
+  loadSyncState,
+  saveSyncState,
+  clearSyncState,
+  fetchCourtListenerCasesIncremental
 } = require("./_search-core");
 
 module.exports = async (req, res) => {
@@ -33,18 +37,35 @@ module.exports = async (req, res) => {
   }
 
   const extraQuery = typeof req.query.extraQuery === "string" ? req.query.extraQuery.trim() : "";
+  const cacheKey = makeCacheKey(extraQuery);
 
   try {
-    const { cases, progress } = await fetchCourtListenerCases(token, extraQuery);
+    const existingPayload = await loadSharedCache(cacheKey);
+    const existingCases = Array.isArray(existingPayload?.cases) ? existingPayload.cases : [];
+    const syncState = await loadSyncState(cacheKey);
+    const batch = await fetchCourtListenerCasesIncremental(token, extraQuery, syncState);
+    const mergedCases = dedupeCases([...existingCases, ...batch.cases]);
     const responsePayload = {
       ok: true,
-      count: cases.length,
-      progress,
-      cases,
+      count: mergedCases.length,
+      progress: batch.progress,
+      cases: mergedCases,
       source: "courtlistener",
-      syncedAt: new Date().toISOString()
+      syncedAt: new Date().toISOString(),
+      hasMore: batch.hasMore,
+      completedPlans: batch.planIndex + 1,
+      totalPlans: batch.totalPlans,
+      currentPlan: batch.plan.label
     };
-    await saveSharedCache(makeCacheKey(extraQuery), responsePayload);
+    await saveSharedCache(cacheKey, responsePayload);
+    if (batch.hasMore) {
+      await saveSyncState(cacheKey, {
+        planIndex: batch.nextPlanIndex,
+        updatedAt: new Date().toISOString()
+      });
+    } else {
+      await clearSyncState(cacheKey);
+    }
     res.status(200).json(responsePayload);
   } catch (error) {
     res.status(500).json({
@@ -52,3 +73,12 @@ module.exports = async (req, res) => {
     });
   }
 };
+
+function dedupeCases(items) {
+  const seen = new Map();
+  for (const item of items) {
+    const key = `${item.caseName}|${item.court}|${item.dateFiled}`;
+    if (!seen.has(key)) seen.set(key, item);
+  }
+  return Array.from(seen.values());
+}
