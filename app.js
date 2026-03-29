@@ -503,7 +503,7 @@ function bindEvents() {
       render();
     } catch (error) {
       console.error(error);
-      setStatus(`Admin resync failed: ${error.message || "Unknown error"}`, true);
+      setStatus(`Admin resync failed: ${extractErrorMessage(error)}`, true);
       setLoadingState(false);
     }
   });
@@ -733,6 +733,32 @@ function setStatus(message, isError) {
   els.statusMessage.textContent = message;
   els.statusMessage.style.background = isError ? "rgba(127, 37, 16, 0.14)" : "rgba(174, 58, 29, 0.12)";
   els.statusMessage.style.color = isError ? "#7f2510" : "#7f2510";
+}
+
+function extractErrorMessage(error) {
+  if (!error) return "Unknown error";
+  if (typeof error === "string") return error;
+  if (typeof error.message === "string") return error.message;
+  if (error.message && typeof error.message === "object") {
+    try {
+      return JSON.stringify(error.message);
+    } catch {
+      return "Unknown error";
+    }
+  }
+  if (error.payload?.error) {
+    if (typeof error.payload.error === "string") return error.payload.error;
+    try {
+      return JSON.stringify(error.payload.error);
+    } catch {
+      return "Unknown error";
+    }
+  }
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "Unknown error";
+  }
 }
 
 function toggleDatasetRequestPanel(isVisible) {
