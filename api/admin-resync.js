@@ -42,7 +42,7 @@ module.exports = async (req, res) => {
   try {
     const existingPayload = await loadSharedCache(cacheKey);
     const existingCases = Array.isArray(existingPayload?.cases) ? existingPayload.cases : [];
-    const syncState = await loadSyncState(cacheKey);
+    const syncState = (await loadSyncState(cacheKey)) || {};
     const batch = await fetchCourtListenerCasesIncremental(token, extraQuery, syncState);
     const mergedCases = dedupeCases([...existingCases, ...batch.cases]);
     const responsePayload = {
