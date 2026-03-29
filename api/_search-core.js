@@ -88,7 +88,9 @@ async function loadSharedCache(cacheKey) {
     const pathname = `cache/${cacheKey}.json`;
     const blob = await get(pathname, { access: "public" });
     if (!blob) return null;
-    const text = await new Response(blob.stream()).text();
+    const response = await fetch(blob.downloadUrl || blob.url);
+    if (!response.ok) return null;
+    const text = await response.text();
     const payload = JSON.parse(text);
     if (!payload?.syncedAt) return null;
     const ageHours = (Date.now() - new Date(payload.syncedAt).getTime()) / (1000 * 60 * 60);
@@ -113,7 +115,9 @@ async function loadSyncState(cacheKey) {
     const pathname = `sync/${cacheKey}.json`;
     const blob = await get(pathname, { access: "public" });
     if (!blob) return null;
-    const text = await new Response(blob.stream()).text();
+    const response = await fetch(blob.downloadUrl || blob.url);
+    if (!response.ok) return null;
+    const text = await response.text();
     return JSON.parse(text);
   } catch {
     return null;
